@@ -3,5 +3,5 @@
 window.NAVO_LINE_CONFIG = {
   SUPABASE_URL: 'https://tjjevkihaezzfjpfnjon.supabase.co',
   SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_oNLvhd6hvq6A31GjR2mBAQ_mcPxOx7g',
-  LIFF_ID: 'YOUR_LIFF_ID'
+  LIFF_ID: '2011974788-Nc2jYoAZ'
 };
