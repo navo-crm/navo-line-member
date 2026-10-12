@@ -16,12 +16,28 @@ const cfg=window.NAVO_LINE_CONFIG||{};const $=id=>document.getElementById(id);le
 const money=n=>'$'+Math.round(Number(n)||0).toLocaleString('zh-TW');
 function message(id,t){$(id).textContent=t||''}
 function show(id){['loading','bindCard','memberView'].forEach(x=>$(x).classList.toggle('hidden',x!==id))}
-async function callApi(action,extra={}){const r=await fetch(cfg.SUPABASE_URL+'/functions/v1/navo-line-member',{method:'POST',headers:{'Content-Type':'application/json','apikey':cfg.SUPABASE_PUBLISHABLE_KEY},body:JSON.stringify({action,idToken,...extra})});const d=await r.json();if(!r.ok)throw new Error(d.error||'連線失敗');return d}
+async function callApi(action,extra={}){
+  // Read the current LIFF ID token immediately before every API request.
+  idToken = liff.getIDToken() || '';
+  if(!idToken) throw new Error('沒有取得 LINE 登入憑證，請重新開啟會員中心。');
+  const r=await fetch(cfg.SUPABASE_URL+'/functions/v1/navo-line-member',{method:'POST',headers:{'Content-Type':'application/json','apikey':cfg.SUPABASE_PUBLISHABLE_KEY},body:JSON.stringify({action,idToken,...extra})});
+  let d={}; try { d=await r.json(); } catch (_) {}
+  if(!r.ok){
+    if(/LINE 身分驗證失敗|IdToken expired|登入憑證已過期/i.test(String(d.error||''))){
+      message('loading','LINE 登入憑證已過期，正在重新登入⋯'); show('loading');
+      try { liff.logout(); } catch (_) {}
+      liff.login({redirectUri:location.href});
+      throw new Error('LINE 登入憑證已過期，正在重新登入，請稍候。');
+    }
+    throw new Error(d.error||('連線失敗（HTTP '+r.status+'）'));
+  }
+  return d;
+}
 function render(data){const m=data.member;$('memberName').textContent=m.name||'NAVO 會員';$('level').textContent=m.level;$('totalSpend').textContent=money(m.totalSpend);$('yearLabel').textContent=new Date().getFullYear()+' 年消費';$('yearSpend').textContent=money(m.yearSpend);$('purchaseCount').textContent=String(m.purchaseCount||0);$('averageOrder').textContent=money(m.averageOrder);$('preferredCountry').textContent=m.preferredCountry;$('favoriteCategory').textContent=m.favoriteCategory;
 const cs=data.coupons||[];$('coupons').innerHTML=cs.length?cs.map(c=>`<div class="coupon"><div class="row"><b>${escapeHtml(c.title)}</b><b class="amount">折抵 ${money(c.amount)}</b></div><div class="muted">消費滿 ${money(c.minimumSpend)} 可使用${c.expiresAt?' · 到期 '+escapeHtml(c.expiresAt.slice(0,10)):''}</div>${c.note?`<div class="muted">${escapeHtml(c.note)}</div>`:''}</div>`).join(''):'<div class="empty">目前沒有可使用的抵用券<br>期待下次連線帶給妳驚喜 💗</div>';
 const ps=data.recentPurchases||[];$('purchases').innerHTML=ps.length?ps.map(p=>`<div class="purchase"><div class="row"><b>${escapeHtml(p.trip||'未指定場次')}</b><span class="amount">${money(p.amount)}</span></div><div class="muted">${escapeHtml(p.date||'')} · ${escapeHtml(p.category||'其他')}${p.product?' · '+escapeHtml(p.product):''}</div></div>`).join(''):'<div class="empty">還沒有消費紀錄。</div>';show('memberView')}
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 async function loadProfile(){try{message('profileMsg','正在更新⋯');const d=await callApi('profile');if(!d.bound){show('bindCard');$('registerForm').classList.toggle('hidden',Boolean(d.registered));if(d.member?.name)message('joinMsg',d.registered?`嗨，${d.member.name}！妳的 NAVO 會員資料已完成。若妳以前買過 NAVO，可使用一次性驗證碼同步舊紀錄。`:`嗨，${d.member.name}！請填寫真實姓名與手機號碼完成註冊。若妳以前買過 NAVO，也可以直接同步舊紀錄。`);return}render(d);message('profileMsg','')}catch(e){show('loading');message('loading',e.message||'讀取失敗，請重新開啟會員頁。')}}
 async function start(){try{if(!cfg.SUPABASE_URL||!cfg.SUPABASE_PUBLISHABLE_KEY||!cfg.LIFF_ID||cfg.LIFF_ID==='YOUR_LIFF_ID')throw new Error('會員中心尚未設定完成，請聯絡 NAVO。');await liff.init({liffId:cfg.LIFF_ID});if(!liff.isLoggedIn()){liff.login({redirectUri:location.href});return}idToken=liff.getIDToken();if(!idToken)throw new Error('沒有取得 LINE 登入憑證。請確認 LIFF 已啟用 openid 權限。');await loadProfile()}catch(e){show('loading');message('loading',e.message||'初始化失敗')}}
-$('registerBtn').onclick=async()=>{const realName=$('realName').value.trim(),phone=$('phone').value.trim();if(realName.length<2){message('registerMsg','請輸入真實姓名。');return}if(!phone){message('registerMsg','請輸入手機號碼。');return}const b=$('registerBtn');b.disabled=true;b.textContent='註冊中⋯';try{const d=await callApi('register',{realName,phone});message('registerMsg',d.message||'註冊完成');if(!d.ok)throw new Error('註冊未完成，請重新嘗試');await loadProfile()}catch(e){message('registerMsg',e.message||'註冊失敗')}finally{b.disabled=false;b.textContent='完成會員註冊'}};$('showBindFormBtn').onclick=()=>{$('bindForm').classList.remove('hidden');$('showBindFormBtn').classList.add('hidden');$('bindCode').focus()};$('bindBtn').onclick=async()=>{const code=$('bindCode').value.trim();if(!/^\d{8}$/.test(code)){message('bindMsg','請輸入 8 位數驗證碼。');return}const b=$('bindBtn');b.disabled=true;b.textContent='驗證中⋯';try{const d=await callApi('bind',{code});message('bindMsg',d.message||'綁定成功');await loadProfile()}catch(e){message('bindMsg',e.message||'綁定失敗')}finally{b.disabled=false;b.textContent='驗證並綁定'}};$('refreshBtn').onclick=loadProfile;start();
+$('registerBtn').onclick=async()=>{const realName=$('realName').value.trim(),phone=$('phone').value.trim();if(realName.length<2){message('registerMsg','請輸入真實姓名。');return}if(!phone){message('registerMsg','請輸入手機號碼。');return}const b=$('registerBtn');b.disabled=true;b.textContent='註冊中⋯';try{const d=await callApi('register',{realName,phone});message('registerMsg',d.message||'註冊完成');await loadProfile()}catch(e){message('registerMsg',e.message||'註冊失敗')}finally{b.disabled=false;b.textContent='完成會員註冊'}};$('showBindFormBtn').onclick=()=>{$('bindForm').classList.remove('hidden');$('showBindFormBtn').classList.add('hidden');$('bindCode').focus()};$('bindBtn').onclick=async()=>{const code=$('bindCode').value.trim();if(!/^\d{8}$/.test(code)){message('bindMsg','請輸入 8 位數驗證碼。');return}const b=$('bindBtn');b.disabled=true;b.textContent='驗證中⋯';try{const d=await callApi('bind',{code});message('bindMsg',d.message||'綁定成功');await loadProfile()}catch(e){message('bindMsg',e.message||'綁定失敗')}finally{b.disabled=false;b.textContent='驗證並綁定'}};$('refreshBtn').onclick=loadProfile;start();
 </script></body></html>
