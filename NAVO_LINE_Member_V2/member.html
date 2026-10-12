@@ -1,27 +1,43 @@
-<!doctype html>
-<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#f7eaf0"><title>NAVO 會員中心</title>
-<style>
-:root{--pink:#c96f91;--ink:#332a30;--muted:#847780;--bg:#fff8fb;--line:#f0dce5;--card:#fff;--soft:#fbedf3}*{box-sizing:border-box}body{margin:0;background:linear-gradient(160deg,#fff7fa,#f8edf2 55%,#fff);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC",sans-serif}.wrap{max-width:520px;margin:auto;padding:20px 16px 42px}.brand{text-align:center;padding:10px 0 20px}.brand .logo{font-size:12px;letter-spacing:.28em;color:var(--pink);font-weight:800}.brand h1{font-size:26px;margin:8px 0 4px}.brand p{font-size:13px;color:var(--muted);margin:0}.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:18px;margin:12px 0;box-shadow:0 7px 24px #8d52620a}.hero{background:linear-gradient(135deg,#f4dce6,#fff1f6);border:1px solid #eacbd8}.row{display:flex;justify-content:space-between;gap:12px;align-items:center}.muted{font-size:12px;color:var(--muted)}.level{display:inline-block;background:#fff9fc;border:1px solid #e7bfd0;border-radius:999px;padding:6px 11px;color:#a64d72;font-size:12px;font-weight:700}.name{font-size:23px;font-weight:800;margin:12px 0 4px}.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}.stat{background:#ffffffb8;border-radius:14px;padding:12px}.stat span{display:block;color:var(--muted);font-size:12px}.stat b{display:block;font-size:20px;margin-top:5px}.sectionTitle{font-size:16px;font-weight:800;margin:0 0 12px}.line{height:1px;background:var(--line);margin:12px 0}.field{display:block;width:100%;border:1px solid var(--line);border-radius:12px;background:#fff;padding:13px 12px;font:inherit;margin:8px 0 12px}.btn{border:0;border-radius:13px;padding:13px 15px;background:var(--pink);color:#fff;font:inherit;font-weight:800;width:100%;cursor:pointer}.btn.secondary{background:#fff;color:var(--pink);border:1px solid var(--line)}.btn:disabled{opacity:.55}.msg{font-size:13px;color:var(--muted);line-height:1.6;white-space:pre-wrap}.purchase,.coupon{padding:11px 0;border-bottom:1px solid var(--line)}.purchase:last-child,.coupon:last-child{border-bottom:0}.amount{font-weight:800;white-space:nowrap}.empty{text-align:center;padding:20px 8px;color:var(--muted);font-size:13px}.foot{text-align:center;color:var(--muted);font-size:11px;padding:14px}.hidden{display:none!important}
-</style><script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script><script src="config.js"></script></head>
-<body><main class="wrap"><header class="brand"><div class="logo">N A V O</div><h1>我的會員中心</h1><p>每一次代購，都更懂妳喜歡什麼。</p></header>
-<section id="loading" class="card"><div class="msg">正在連接 NAVO 會員中心⋯</div></section>
-<section id="bindCard" class="card hidden"><h2 class="sectionTitle">🎀 歡迎加入 NAVO 會員</h2><p id="joinMsg" class="msg">已為妳建立 LINE 會員身分！如果妳是新客，不需要額外操作。若妳以前買過 NAVO，可以選擇同步既有消費紀錄與 VIP 等級。</p><button id="showBindFormBtn" class="btn secondary">我以前買過 NAVO，想同步舊紀錄</button><div id="bindForm" class="hidden"><p class="msg">請向 NAVO 索取一次性驗證碼。驗證碼 15 分鐘內有效，成功後即可同步既有會員資料。</p><input id="bindCode" class="field" inputmode="numeric" maxlength="8" placeholder="輸入 8 位數驗證碼"><button id="bindBtn" class="btn">驗證並同步</button><p id="bindMsg" class="msg"></p></div></section>
-<section id="memberView" class="hidden"><div class="card hero"><div class="row"><span class="muted">NAVO MEMBER</span><span id="level" class="level">會員</span></div><div id="memberName" class="name">NAVO 會員</div><div class="muted">感謝妳一直以來的支持 ♡</div><div class="stats"><div class="stat"><span>累計消費</span><b id="totalSpend">$0</b></div><div class="stat"><span id="yearLabel">2026 年消費</span><b id="yearSpend">$0</b></div><div class="stat"><span>消費次數</span><b id="purchaseCount">0</b></div><div class="stat"><span>平均客單</span><b id="averageOrder">$0</b></div></div></div>
-<div class="card"><h2 class="sectionTitle">🌏 我的購物偏好</h2><div class="row"><span class="muted">最常購買國家</span><b id="preferredCountry">尚無資料</b></div><div class="line"></div><div class="row"><span class="muted">常買商品類別</span><b id="favoriteCategory">尚無資料</b></div></div>
-<div class="card"><h2 class="sectionTitle">🎁 我的抵用券</h2><div id="coupons" class="msg">目前沒有可使用的抵用券。</div><p class="muted">抵用券依 NAVO 公告之使用門檻與期限為準。</p></div>
-<div class="card"><h2 class="sectionTitle">🛍️ 最近消費</h2><div id="purchases"></div></div><button id="refreshBtn" class="btn secondary">重新整理會員資料</button><div id="profileMsg" class="msg"></div></section>
-<div class="foot">NAVO · 日本・韓國・泰國・香港代購<br>會員資料僅供本人查看。</div></main>
-<script>
-const cfg=window.NAVO_LINE_CONFIG||{};const $=id=>document.getElementById(id);let idToken='';
-const money=n=>'$'+Math.round(Number(n)||0).toLocaleString('zh-TW');
-function message(id,t){$(id).textContent=t||''}
-function show(id){['loading','bindCard','memberView'].forEach(x=>$(x).classList.toggle('hidden',x!==id))}
-async function callApi(action,extra={}){const r=await fetch(cfg.SUPABASE_URL+'/functions/v1/navo-line-member',{method:'POST',headers:{'Content-Type':'application/json','apikey':cfg.SUPABASE_PUBLISHABLE_KEY},body:JSON.stringify({action,idToken,...extra})});const d=await r.json();if(!r.ok)throw new Error(d.error||'連線失敗');return d}
-function render(data){const m=data.member;$('memberName').textContent=m.name||'NAVO 會員';$('level').textContent=m.level;$('totalSpend').textContent=money(m.totalSpend);$('yearLabel').textContent=new Date().getFullYear()+' 年消費';$('yearSpend').textContent=money(m.yearSpend);$('purchaseCount').textContent=String(m.purchaseCount||0);$('averageOrder').textContent=money(m.averageOrder);$('preferredCountry').textContent=m.preferredCountry;$('favoriteCategory').textContent=m.favoriteCategory;
-const cs=data.coupons||[];$('coupons').innerHTML=cs.length?cs.map(c=>`<div class="coupon"><div class="row"><b>${escapeHtml(c.title)}</b><b class="amount">折抵 ${money(c.amount)}</b></div><div class="muted">消費滿 ${money(c.minimumSpend)} 可使用${c.expiresAt?' · 到期 '+escapeHtml(c.expiresAt.slice(0,10)):''}</div>${c.note?`<div class="muted">${escapeHtml(c.note)}</div>`:''}</div>`).join(''):'<div class="empty">目前沒有可使用的抵用券<br>期待下次連線帶給妳驚喜 💗</div>';
-const ps=data.recentPurchases||[];$('purchases').innerHTML=ps.length?ps.map(p=>`<div class="purchase"><div class="row"><b>${escapeHtml(p.trip||'未指定場次')}</b><span class="amount">${money(p.amount)}</span></div><div class="muted">${escapeHtml(p.date||'')} · ${escapeHtml(p.category||'其他')}${p.product?' · '+escapeHtml(p.product):''}</div></div>`).join(''):'<div class="empty">還沒有消費紀錄。</div>';show('memberView')}
-function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-async function loadProfile(){try{message('profileMsg','正在更新⋯');const d=await callApi('profile');if(!d.bound){show('bindCard');if(d.member?.name)message('joinMsg',`嗨，${d.member.name}！已為妳建立 NAVO LINE 會員身分。新客不需要驗證碼；如果妳以前買過 NAVO，輸入一次性驗證碼即可同步既有消費紀錄與 VIP 等級。`);return}render(d);message('profileMsg','')}catch(e){show('loading');message('loading',e.message||'讀取失敗，請重新開啟會員頁。')}}
-async function start(){try{if(!cfg.SUPABASE_URL||!cfg.SUPABASE_PUBLISHABLE_KEY||!cfg.LIFF_ID||cfg.LIFF_ID==='YOUR_LIFF_ID')throw new Error('會員中心尚未設定完成，請聯絡 NAVO。');await liff.init({liffId:cfg.LIFF_ID});if(!liff.isLoggedIn()){liff.login({redirectUri:location.href});return}idToken=liff.getIDToken();if(!idToken)throw new Error('沒有取得 LINE 登入憑證。請確認 LIFF 已啟用 openid 權限。');await loadProfile()}catch(e){show('loading');message('loading',e.message||'初始化失敗')}}
-$('showBindFormBtn').onclick=()=>{$('bindForm').classList.remove('hidden');$('showBindFormBtn').classList.add('hidden');$('bindCode').focus()};$('bindBtn').onclick=async()=>{const code=$('bindCode').value.trim();if(!/^\d{8}$/.test(code)){message('bindMsg','請輸入 8 位數驗證碼。');return}const b=$('bindBtn');b.disabled=true;b.textContent='驗證中⋯';try{const d=await callApi('bind',{code});message('bindMsg',d.message||'綁定成功');await loadProfile()}catch(e){message('bindMsg',e.message||'綁定失敗')}finally{b.disabled=false;b.textContent='驗證並綁定'}};$('refreshBtn').onclick=loadProfile;start();
-</script></body></html>
+async function start(){
+  try {
+    if (
+      !cfg.SUPABASE_URL ||
+      !cfg.SUPABASE_PUBLISHABLE_KEY ||
+      !cfg.LIFF_ID ||
+      cfg.LIFF_ID === 'YOUR_LIFF_ID'
+    ) {
+      throw new Error('會員中心尚未設定完成，請聯絡 NAVO。');
+    }
+
+    await liff.init({
+      liffId: cfg.LIFF_ID
+    });
+
+    // LINE 內建瀏覽器會由 LIFF 初始化處理登入，
+    // 不要在這裡重複呼叫 liff.login()
+    if (!liff.isInClient() && !liff.isLoggedIn()) {
+      liff.login({
+        redirectUri: location.href
+      });
+      return;
+    }
+
+    idToken = liff.getIDToken();
+
+    if (!idToken) {
+      throw new Error(
+        '沒有取得 LINE 登入憑證，請確認 LIFF 已啟用 openid 權限，並重新開啟會員頁面。'
+      );
+    }
+
+    await loadProfile();
+
+  } catch (e) {
+    show('loading');
+    message(
+      'loading',
+      '會員中心開啟失敗：' + (e.message || '未知錯誤') +
+      '\n請關閉頁面後重新開啟；若仍失敗，請聯絡 NAVO。'
+    );
+  }
+}
