@@ -1,0 +1,3 @@
+[functions.navo-line-member]
+# LINE ID token 由函式自行向 LINE 驗證；create-code 操作另外驗證 Supabase 管理員 JWT。
+verify_jwt = false
